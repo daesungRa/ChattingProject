@@ -47,7 +47,7 @@ public class ClientThread extends Thread {
 			// 스트림이 생성된 후에 실행된다는 보장이 없어서 ct 내부로 옮김
 			curID = cc.getId().getText().trim();
 			int command = 2; // login
-			String message = new String("로그인을 요청합니다.");
+			String message = new String("로그인 할게요~");
 
 			// 요청 내용을 Data 객체에 담아 생성한 ClientThread 의 send() 로 서버에 전송
 			Data sendData = new Data(curID, command, message);
@@ -56,11 +56,10 @@ public class ClientThread extends Thread {
 			while (threadFlag) {
 				// 구축된 스트림으로부터 전송된 객체를 수용한다
 				Data receiveData = (Data) ois.readObject();
-				Data responseData;
 				
 				// 객체 판별은 id 로 한다
 				String id = receiveData.getId();
-				String msg = receiveData.getMessage().trim();
+				String msg = receiveData.getMessage();
 				
 				switch (receiveData.getCommand()) {
 				case 1: // message
@@ -102,10 +101,37 @@ public class ClientThread extends Thread {
 					
 					break;
 				case 3: // logout
+				
+					// 자기 자신이라면,
+					if (id.equals(this.cc.getId().getText().trim())) {
+						
+						// 접속종료 메시지
+						this.cc.msg("[접속종료중]" + curID + " > 접속을 종료합니다.", false);
+						
+						// 플래그를 거짓으로 하고 로직을 흘려보낸다 >> 스레드 종료됨
+						this.threadFlag = false;
+						
+					// 자기 자신이 아니라면 벡터 users 와 리스트만 갱신
+					} else {
+						
+						// 접속종료 메시지
+						this.cc.msg("[접속종료]" + id + " > " + msg, false);
+						
+						// 벡터 users 에서 해당 유저 삭제(flag == false) 및 리스트 갱신
+						this.cc.setUsers(id, false);
+						this.cc.getUsrListField().setListData(this.cc.getUsers());
+						
+					}
+					
 					break;
 				case 4: // whisper mode
-					// 받은 메시지 출력
-					this.cc.msg("[귓]" + id + " > " + msg, true);
+					
+					// 자기 자신이 아니라면 출력
+					if (!id.equals(this.cc.getId().getText().trim())) {
+						// 받은 메시지 출력
+						this.cc.msg("[귓]" + id + " > " + msg, true);
+					}
+					
 					break;
 				case 12:
 					break;
@@ -113,7 +139,7 @@ public class ClientThread extends Thread {
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			cc.msg("클라이언트 스레드 구동 중 문제가 발생했습니다.", false);
+			cc.msg("[스레드 에러]" + curID + "클라이언트 스레드 구동 중 문제가 발생했습니다.", false);
 		} finally {
 			try {
 				oos.flush();
@@ -123,6 +149,9 @@ public class ClientThread extends Thread {
 				is.close();
 			} catch (Exception ex) { }
 		}
+		
+		// 접속종료 메시지 출력
+		this.cc.msg("[접속종료]" + curID + "접속 종료를 완료했습니다.", false);
 	}
 	
 	public void send(Data d) {

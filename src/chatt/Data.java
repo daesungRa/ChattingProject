@@ -2,7 +2,6 @@ package chatt;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Vector;
 
 public class Data implements Serializable {
 	private static final long serialVersionUID = 1L;

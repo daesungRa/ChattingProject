@@ -50,11 +50,12 @@ public class ServerThread extends Thread {
 				
 				// 객체 판별은 id 로 한다
 				String id = receiveData.getId();
-				String msg = receiveData.getMessage().trim();
+				String msg = receiveData.getMessage();
 				
 				// 최초 로그인 시에만 실행됨
+				// null 이거나 빈 문자열이면 실행됨
 				// 전역변수에 접속주체의 아이디를 저장
-				if (curID == null) {
+				if (curID == null || curID.equals("")) {
 					curID = id;
 				}
 				
@@ -87,11 +88,23 @@ public class ServerThread extends Thread {
 					
 					break;
 				case 3: // logout
+					this.cs.msg("[접속종료]" + curID + " > " + msg, true);
+					
+					// 접속종료 객체를 통신 중인 모든 클라이언트스레드로 재전송하여 해당 유저의 접속종료를 알린다
+					this.sendAll(receiveData);
+					
+					// 서버에서 해당 스레드 및 유저 삭제 (flag == false)
+					this.cs.setClients(curID, ServerThread.this, false);
+					this.cs.setUsers(curID, false);
+					
+					// JList 갱신
+					this.cs.getUsrListField().setListData(this.cs.getUsers());
+					
 					break;
 				case 4: // whisper mode
 					
 					// 받은 메시지 출력
-					this.cs.msg("[귓] to " + Arrays.deepToString(receiveData.getUsers().toArray()) + " > " + msg, true);
+					this.cs.msg("[귓]" + id + " to " + Arrays.deepToString(receiveData.getUsers().toArray()) + " > " + msg, true);
 					
 					// 선택된 유저들에게만 재전송 (그냥 받은 객체 재전송)
 					// 벡터 리스트로 반환됨
@@ -106,10 +119,15 @@ public class ServerThread extends Thread {
 			}
 		} catch (SocketException se) {
 			se.printStackTrace();
-			this.cs.msg("[유저아이디]" + curID + " > 클라이언트의 비정상적 종료", false);
+			this.cs.msg("[접속종료]" + curID + " > 클라이언트의 비정상적 종료", false);
+			
+			// 서버에서 해당 스레드 및 유저 삭제 (flag == false)
+			this.cs.setClients(curID, ServerThread.this, false);
+			this.cs.setUsers(curID, false);
+			
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			this.cs.msg("[유저아이디]" + curID + " > 서버스레드 구동 중 문제 발생", false);
+			this.cs.msg("[접속종료]" + curID + " > 서버스레드 구동 중 문제 발생", false);
 		} finally {
 			try {
 				oos.flush();
@@ -132,7 +150,6 @@ public class ServerThread extends Thread {
 	}
 	
 	// 반복자로 접속한 유저들의 ServerThread 얻어와서 Data 객체를 send 한다
-	// 단, 접속한 유저의 아이디와 매개변수로 넘어온 Data 객체의 아이디가 같다면(동일한 유저라면) send 하지 않는다
 	public void sendAll(Data d) {
 		Iterator<String> ite = cs.getClients().keySet().iterator();
 		while (ite.hasNext()) {

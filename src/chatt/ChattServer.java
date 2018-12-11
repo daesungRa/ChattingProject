@@ -22,7 +22,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -189,6 +189,7 @@ public class ChattServer extends JFrame implements Runnable {
 		this.cstate.setText("Server Stopped");
 	}
 
+	// flag 가 true 면 일반 메시지, 아니면 시스템 메시지
 	void msg(String msg, boolean flag) {
 		if (flag) {
 			mainTextArea.append(msg + "\n");
@@ -205,26 +206,67 @@ public class ChattServer extends JFrame implements Runnable {
 		// if whisperMode sets true, written message will be sent selected users
 		// The user to receive the whisper message is selected in the userlist
 		if (whisperMode) {
+
+			// JList 에서 선택된 유저들에게만 전송
+			List<String> selectedUsers = usrListField.getSelectedValuesList();
 			
 			// 메시지를 서버에 출력
-			this.msg("[메시지]server > " + txtfield.getText(), true);
+			// 리스트를 배열로 변환해서 Arrays.deepToString 으로 그대로 출력
+			this.msg("[귓]server to " + Arrays.deepToString(selectedUsers.toArray()) + " > " + txtfield.getText(), true);
 			
 			// 전달할 귓속말 객체 생성
 			sendData = new Data("server", 4, txtfield.getText().trim());
 			
-			// JList 에서 선택된 유저들에게만 전송
-			List<String> selectedUsers = usrListField.getSelectedValuesList();
-			for (String selUsers : selectedUsers) {
-				this.clients.get(selUsers).send(sendData);
+			for (String selUser : selectedUsers) {
+				this.clients.get(selUser).send(sendData);
 			}
 			
 			// if whisperMode sets false, written message will be sent all users
 		} else {
+
+			// 메시지를 서버에 출력
+			this.msg("[메시지]server > " + txtfield.getText(), true);
+			
+			sendData = new Data("server", 1, this.txtfield.getText());
+			for (String toUsers : this.users) {
+				this.clients.get(toUsers).send(sendData);
+			}
 			
 		}
 	}
 	
 	/* ========== end of define methods ========== */
+	
+	/* ========== getter and setter ========== */
+	// flag 변수를 int 로 해야 하나??
+	public void setClients(String id, ServerThread st, boolean flag) {
+		// true 면 객체 추가, 아니면 삭제
+		if (flag) {
+			this.clients.put(id, st);
+		} else {
+			this.clients.remove(id);
+		}
+	}
+	
+	// 새로 생성된 서버스레드 추가 시 필요함
+	public Map<String, ServerThread> getClients(){
+		return this.clients;
+	}
+	
+	public void setUsers(String id, boolean flag) {
+		// true 면 객체 추가, 아니면 객체 삭제
+		if (flag) {
+			this.users.add(id);
+		} else {
+			this.users.remove(id);
+		}
+	}
+	
+	// 접속 유저 리스트를 전송할 경우가 있으므로 필요함
+	public Vector<String> getUsers() {
+		return this.users;
+	}
+	/* ========== end of getter and setter ========== */
 	
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -255,11 +297,23 @@ public class ChattServer extends JFrame implements Runnable {
 		contentPane.add(getPanel_1(), BorderLayout.SOUTH);
 		contentPane.add(getScrollPane(), BorderLayout.WEST);
 		contentPane.add(getScrollPane_1(), BorderLayout.CENTER);
+		
+		try {
+			InetAddress inetd = InetAddress.getLocalHost();
+			String addr = inetd.getHostAddress();
+			this.ip.setText(addr);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			this.msg("네트워크 에러 발생", true);
+		}
+		
+		btnStop.setEnabled(false);
 	}
 
 	private JPanel getPanel() {
 		if (panel == null) {
 			panel = new JPanel();
+			panel.setBackground(new Color(143, 188, 143));
 			panel.setPreferredSize(new Dimension(10, 40));
 			panel.setLayout(new FlowLayout(FlowLayout.RIGHT, 5, 5));
 			panel.add(getLblIP());
@@ -316,7 +370,7 @@ public class ChattServer extends JFrame implements Runnable {
 		}
 		return mainTextArea;
 	}
-	private JList getUsrListField() {
+	JList getUsrListField() {
 		if (usrListField == null) {
 			usrListField = new JList();
 		}
@@ -339,12 +393,24 @@ public class ChattServer extends JFrame implements Runnable {
 	private JButton getBtnStop() {
 		if (btnStop == null) {
 			btnStop = new JButton("SERVER STOP");
+			btnStop.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					serverStop();
+				}
+			});
+			btnStop.setPreferredSize(new Dimension(120, 30));
 		}
 		return btnStop;
 	}
 	private JButton getBtnStart() {
 		if (btnStart == null) {
 			btnStart = new JButton("SERVER START");
+			btnStart.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					serverStart();
+				}
+			});
+			btnStart.setPreferredSize(new Dimension(130, 30));
 		}
 		return btnStart;
 	}
@@ -365,9 +431,9 @@ public class ChattServer extends JFrame implements Runnable {
 	}
 	private JLabel getLblIP() {
 		if (lblIP == null) {
-			lblIP = new JLabel("Server IP :");
+			lblIP = new JLabel("IP :");
 			lblIP.setHorizontalAlignment(SwingConstants.CENTER);
-			lblIP.setPreferredSize(new Dimension(65, 30));
+			lblIP.setPreferredSize(new Dimension(30, 30));
 		}
 		return lblIP;
 	}
@@ -388,20 +454,48 @@ public class ChattServer extends JFrame implements Runnable {
 	private JButton getBtnSendMsg() {
 		if (btnSendMsg == null) {
 			btnSendMsg = new JButton("SEND");
+			btnSendMsg.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent ae) {
+					sendMsg();
+					txtfield.setText("");
+					txtfield.requestFocus();
+				}
+			});
 			btnSendMsg.setPreferredSize(new Dimension(65, 30));
 		}
 		return btnSendMsg;
 	}
 	private JButton getBtnWhisper() {
 		if (btnWhisper == null) {
-			btnWhisper = new JButton("WHISPER");
-			btnWhisper.setPreferredSize(new Dimension(90, 30));
+			btnWhisper = new JButton("WHISPER ON");
+			btnWhisper.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					if (whisperMode) {
+						btnWhisper.setText("WHISPER ON");
+						whisperMode = false;
+					} else {
+						btnWhisper.setText("WHISPER OFF");
+						whisperMode = true;
+					}
+				}
+			});
+			btnWhisper.setPreferredSize(new Dimension(120, 30));
 		}
 		return btnWhisper;
 	}
 	private JTextField getTxtfield() {
 		if (txtfield == null) {
 			txtfield = new JTextField();
+			txtfield.addKeyListener(new KeyAdapter() {
+				@Override
+				public void keyReleased(KeyEvent ke) {
+					if (ke.getKeyCode() == KeyEvent.VK_ENTER) {
+						sendMsg();
+						txtfield.setText("");
+						txtfield.requestFocus();
+					}
+				}
+			});
 			txtfield.setColumns(10);
 		}
 		return txtfield;

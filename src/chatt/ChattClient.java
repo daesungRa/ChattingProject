@@ -14,6 +14,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.sql.ClientInfoStatus;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
@@ -76,6 +77,7 @@ public class ChattClient extends JFrame {
 	private ClientThread ct;
 	
 	// 현재 유저의 아이디 저장
+	// setting 을 해야만 초기화됨
 	private String curID = null;
 	
 	// 귓속말 모드 플래그
@@ -88,7 +90,9 @@ public class ChattClient extends JFrame {
 	/* ============= define methods ============= */
 	private void connectServer() {
 		try {
-			if (this.id.getText().equals("NULL")) {
+			
+			// NULL 혹은 빈 문자열인지 판별 후 필터링
+			if (this.id.getText().equals("NULL") || this.id.getText().trim().equals("")) {
 				JOptionPane.showMessageDialog(ChattClient.this, "ID 를 입력하세요.");
 				return;
 			}
@@ -96,6 +100,8 @@ public class ChattClient extends JFrame {
 			// 버튼 활성화/비활성화
 			btnConnect.setEnabled(false);
 			btnDisconnect.setEnabled(true);
+			// 접속중이면 setting 불가하도록
+			btnSetting.setEnabled(false);
 			
 			// 서버와 연결되는 소켓 생성
 			// UI 상단부에 세팅된 주소와 디폴트 포트번호를 기반으로 한다
@@ -113,14 +119,27 @@ public class ChattClient extends JFrame {
 	private void disconnectServer() {
 		try {
 			
+			// 버튼 활성화/비활성화
+			btnConnect.setEnabled(true);
+			btnDisconnect.setEnabled(false);
+			// 접속 종료하면 setting 가능
+			btnSetting.setEnabled(true);
+			
+			// 서버에 로그아웃 객체 전송
+			// 서버는 스트림으로 로그아웃 객체를 재전송 함으로써 ct 스레드를 종료시킨다
+			Data sendData = new Data(curID, 3, "로그아웃 할게요~");
+			this.ct.send(sendData);
+			
+			// 벡터 users 초기화
+			this.users.clear();
+			
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			this.msg("접속 해제 중 문제가 발생했습니다.", false);
+			this.msg("[접속종료에러]" + curID + "접속 해제 중 문제가 발생했습니다.", false);
 		}
-		
-		this.msg("접속 해제를 완료했습니다.", false);
 	}
 	
+	// flag 가 true 면 일반 메시지, 아니면 시스템 메시지
 	void msg(String msg, boolean flag) {
 		if (flag) {
 			mainTextArea.append(msg + "\n");
@@ -132,25 +151,48 @@ public class ChattClient extends JFrame {
 	// 1. enable whisper mode - send message that located in [txtField] to selected clients in userList
 	// 2. disable whisper mode - send message that located in [txtField] to all clients which connected to server
 	private void sendMsg() {
-		// if whisperMode sets true, written message will be sent selected users
-		// The user to receive the whisper message is selected in the userlist
+
 		Data sendData;
+		String msg = this.txtField.getText();
+		
+		// if whisperMode sets true, written message will be sent selected users
+		// The user to receive the whisper message is selected in the userlist		
 		if (whisperMode) {
 			
 			// include selected users list
 			List<String> selectedUsers = usrListField.getSelectedValuesList();
-			sendData = new Data(curID, 4, this.txtField.getText().trim(), selectedUsers);
+			
+			// 귓 메시지 출력
+			this.msg("[귓]나 to " + Arrays.deepToString(selectedUsers.toArray()) + " > " + msg, true);
+			
+			sendData = new Data(curID, 4, msg, selectedUsers);
 			this.ct.send(sendData);
 			
 			// if whisperMode sets false, written message will be sent all connected users
 		} else {
 			
-			sendData = new Data(curID, 1, this.txtField.getText().trim());
+			sendData = new Data(curID, 1, this.txtField.getText());
 			this.ct.send(sendData);
 			
 		}
 	}
 	/* ========== end of define methods ========== */
+	
+	/* ========== getter and setter ========== */
+	// flag 변수를 int 로 해야 하나??
+	public void setUsers(String id, boolean flag) {
+		// true 면 객체 추가, 아니면 객체 삭제
+		if (flag) {
+			this.users.add(id);
+		} else {
+			this.users.remove(id);
+		}
+	}
+	
+	public Vector<String> getUsers() {
+		return this.users;
+	}
+	/* ========== end of getter and setter ========== */
 	
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -190,28 +232,11 @@ public class ChattClient extends JFrame {
 			this.serverAddr.setText(this.serverIP);
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			this.msg("네트워크 오류 발생", false);
+			this.msg("네트워크 에러 발생", false);
 		}
 		
 		btnDisconnect.setEnabled(false);
 	}
-	
-	/* ========== getter and setter ========== */
-	// getter 는 만들지 않음
-	// flag 변수를 int 로 해야 하나??
-	public void setUsers(String id, boolean flag) {
-		// true 면 객체 추가, 아니면 객체 삭제
-		if (flag) {
-			this.users.add(id);
-		} else {
-			this.users.remove(id);
-		}
-	}
-	
-	public Vector<String> getUsers() {
-		return this.users;
-	}
-	/* ========== end of getter and setter ========== */
 
 	private JPanel getPanel() {
 		if (panel == null) {
