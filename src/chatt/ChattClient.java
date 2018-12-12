@@ -74,7 +74,7 @@ public class ChattClient extends JFrame {
 	private int serverPort = 9000;
 	
 	// 접속시 생성되는 클라이언트 스레드
-	private ClientThread ct;
+	public ClientThread ct;
 	
 	// 현재 유저의 아이디 저장
 	// setting 을 해야만 초기화됨
@@ -129,9 +129,6 @@ public class ChattClient extends JFrame {
 			// 서버는 스트림으로 로그아웃 객체를 재전송 함으로써 ct 스레드를 종료시킨다
 			Data sendData = new Data(curID, 3, "로그아웃 할게요~");
 			this.ct.send(sendData);
-			
-			// 벡터 users 초기화
-			this.users.clear();
 			
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -372,7 +369,7 @@ public class ChattClient extends JFrame {
 		}
 		return lblPwd;
 	}
-	JLabel getId() {
+	public JLabel getId() {
 		if (id == null) {
 			id = new JLabel("NULL");
 			id.setPreferredSize(new Dimension(50, 30));

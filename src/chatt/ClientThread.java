@@ -110,6 +110,10 @@ public class ClientThread extends Thread {
 						
 						// 플래그를 거짓으로 하고 로직을 흘려보낸다 >> 스레드 종료됨
 						this.threadFlag = false;
+
+						// 벡터 users 초기화
+						this.cc.getUsers().clear();
+						this.cc.getUsrListField().setListData(this.cc.getUsers());
 						
 					// 자기 자신이 아니라면 벡터 users 와 리스트만 갱신
 					} else {

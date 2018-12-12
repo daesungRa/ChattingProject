@@ -19,6 +19,9 @@ public class ServerThread extends Thread {
 	private ObjectInputStream ois;
 	private boolean threadFlag = false;
 	
+	// 현재 해당 서버스레드로 접속 중인 유저의 아이디 저장
+	String curID = null;
+	
 	ServerThread(ChattServer cs, Socket socket) {
 		this.cs = cs;
 		this.serverSocket = socket;
@@ -27,8 +30,10 @@ public class ServerThread extends Thread {
 	
 	@Override
 	public void run() {
-		// 현재 해당 서버스레드로 접속 중인 유저의 아이디 저장
-		String curID = null;
+
+		// 여러 요청을 수용하거나 재전송할 객체
+		Data receiveData = null;
+		Data responseData = null;
 		
 		try {
 			// ChattServer 에서 ServerThread 생성 후 생성자에서 해당 스레드를 구동(start)하면,
@@ -41,12 +46,11 @@ public class ServerThread extends Thread {
 			
 			oos = new ObjectOutputStream(os);
 			ois = new ObjectInputStream(is);
-
+			
 			// 로그인 ~ 로그아웃 시까지 생명주기
 			while (threadFlag) {
 				// 구축된 스트림으로부터 전송된 객체를 수용한다
-				Data receiveData = (Data) ois.readObject();
-				Data responseData;
+				receiveData = (Data) ois.readObject();
 				
 				// 객체 판별은 id 로 한다
 				String id = receiveData.getId();
@@ -100,6 +104,9 @@ public class ServerThread extends Thread {
 					// JList 갱신
 					this.cs.getUsrListField().setListData(this.cs.getUsers());
 					
+					// 플래그를 거짓으로 하고 로직을 흘려보낸다 >> 스레드 종료됨
+					this.threadFlag = false;
+					
 					break;
 				case 4: // whisper mode
 					
@@ -121,9 +128,18 @@ public class ServerThread extends Thread {
 			se.printStackTrace();
 			this.cs.msg("[접속종료]" + curID + " > 클라이언트의 비정상적 종료", false);
 			
+			// 접속종료 객체를 통신 중인 모든 클라이언트스레드로 재전송하여 해당 유저의 접속종료를 알린다
+			if (receiveData != null) {
+				Data sendData = new Data(curID, 3, "로그아웃 할게요~");
+				this.sendAllWithoutMySelf(sendData);
+			}
+			
 			// 서버에서 해당 스레드 및 유저 삭제 (flag == false)
 			this.cs.setClients(curID, ServerThread.this, false);
 			this.cs.setUsers(curID, false);
+			
+			// JList 갱신
+			this.cs.getUsrListField().setListData(this.cs.getUsers());
 			
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -155,6 +171,17 @@ public class ServerThread extends Thread {
 		while (ite.hasNext()) {
 			String cid = ite.next();
 			cs.getClients().get(cid).send(d);
+		}
+	}
+	
+	// 자기 자신을 제외한 sendAll
+	public void sendAllWithoutMySelf(Data d) {
+		Iterator<String> ite = cs.getClients().keySet().iterator();
+		while (ite.hasNext()) {
+			String cid = ite.next();
+			if (!cid.equals(curID)) {
+				cs.getClients().get(cid).send(d);
+			}
 		}
 	}
 }
