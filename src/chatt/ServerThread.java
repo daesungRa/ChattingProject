@@ -1,13 +1,21 @@
 package chatt;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Vector;
+
+import fileTransfer.FileServerPort;
 
 public class ServerThread extends Thread {
 
@@ -21,6 +29,95 @@ public class ServerThread extends Thread {
 	
 	// 현재 해당 서버스레드로 접속 중인 유저의 아이디 저장
 	String curID = null;
+	
+	// 파일을 수신할 스레드
+	private ReceiveThread rt;
+	
+	// 파일을 송신할 스레드
+	private SendThread st;
+	
+	// 파일수신을 위해 임시생성하는 파일서버
+	private class ReceiveThread extends Thread {
+		// 파일수신을 위한 서버소켓
+		ServerSocket serverSocket;
+		
+		// 파일수신을 위한 소켓
+		Socket socket;
+		
+		// 사용할 포트번호
+		int port;
+		
+		// 파일을 수신할 스트림
+		InputStream is;
+		BufferedInputStream bis;
+		
+		// 수신할 데이터 단위
+		byte[] data = new byte[8192];
+		int readByte = 0;
+		
+		// 수신받을 파일명 목록
+		Vector<String> fileNames;
+		
+		// 현재 수신받을 파일명
+		String fileName;
+		
+		// 수신받은 파일을 저장할 스트림
+		FileOutputStream fos;
+		
+		// 생성자
+		// 수신받을 파일명 목록과 포트번호
+		ReceiveThread(List<String> fileNames, int port) {
+			this.fileNames = (Vector<String>) fileNames;
+			this.port = port;
+		}
+		
+		@Override
+		public void run() {
+			try {
+				// 서버포트 생성
+				serverSocket = new ServerSocket(port);
+				
+				// 서버포트 생성 후 클라의 파일전송 대기
+				socket = serverSocket.accept();
+				
+				// 파일전송이 시작되면 단위별로 읽어들인다
+				is = socket.getInputStream();
+				bis = new BufferedInputStream(is);
+				
+				// 읽어들이는 대로 서버에 저장할 파일명
+				while ((readByte = bis.read(data)) != -1) {
+					fos.write(data);
+				}
+				
+				
+			} catch (Exception ex) { }
+		}
+	}
+	
+	// 파일송신을 위해 임시생성하는 파일서버
+	private class SendThread extends Thread {
+		// 파일송신을 위한 서버소켓;
+		ServerSocket serverSocket;
+		
+		// 사용할 포트번호
+		int port;
+		
+		Vector<String> fileNames;
+		
+		public SendThread(List<String> fileNames, int port) {
+			this.fileNames = (Vector<String>) fileNames;
+			this.port = port;
+		}
+		
+		@Override
+		public void run() {
+			try {
+				
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
+		}
+	}
 	
 	ServerThread(ChattServer cs, Socket socket) {
 		this.cs = cs;
@@ -121,6 +218,48 @@ public class ServerThread extends Thread {
 					
 					break;
 				case 11: // file transfer request from client
+					
+					// 서버에 파일전송 요청이 들어왔음을 알림
+					this.cs.msg("[파일전송 요청]" + id + " > " + msg, false);
+					
+					// 포트번호 변경
+					if (FileServerPort.fileServerPort == 9999) {
+						FileServerPort.fileServerPort = 9000;
+					} else {
+						FileServerPort.fileServerPort++;
+					}
+					
+					// 파일수신을 위한 ReceiveThread 생성 및 구동, 여기서 가변포트로 서버소켓을 새로 생성한다
+					// 요청한 클라에 12 번 커맨드를 재송신하여 파일을 보내도 된다고 알려준다
+					// 파일수신이 시작되면 모두 끝나기까지 join 을 건다
+					// receiveData.getUsers() 는 수신할 파일목록임. 기존의 벡터 users 재사용했기 때문에 이름이 겹친다(개선..?)
+					rt = new ReceiveThread(receiveData.getUsers(), FileServerPort.fileServerPort);
+					// 메세지 위치에 해당 가변포트번호를 송신
+					responseData = new Data("server", 12, FileServerPort.fileServerPort + "");
+					this.send(responseData);
+					rt.setDaemon(true);
+					rt.join();
+					rt.start();
+					
+					// 포트번호 변경
+					// rt 의 작업이 종료되어도 gc 에 의해 자원이 회수되지 않았을 가능성이 있으므로 아예 다른 포트번호로 한다
+					if (FileServerPort.fileServerPort == 9999) {
+						FileServerPort.fileServerPort = 9000;
+					} else {
+						FileServerPort.fileServerPort++;
+					}
+					
+					// rt 의 작업이 종료된 이후(join) 접속된 모든 클라이언트로 받은 파일을 재전송하는 SendThread 를 생성,
+					// 여기서도 가변포트로 서버소켓을 새로 생성한다.
+					// 이때 모든 클라로 13 번 커맨드와 포트번호를 전송하여 파일수신대기상태가 되도록 요청한다
+					// receiveData.getUsers() 는 전송할 파일목록임. 기존의 벡터 users 재사용했기 때문에 이름이 겹친다(개선..?)
+					st = new SendThread(receiveData.getUsers(), FileServerPort.fileServerPort);
+					responseData = new Data("server", 13, "파일을 전송을 요청합니다.");
+					this.sendAllWithoutMySelf(responseData);
+					st.setDaemon(true);
+					st.join();
+					st.start();
+					
 					break;
 				}
 			}

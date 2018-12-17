@@ -10,22 +10,30 @@ import javax.swing.border.EmptyBorder;
 import java.awt.Dimension;
 import javax.swing.JButton;
 import javax.swing.border.LineBorder;
+
+import chatt.ChattClient;
+import chatt.Data;
+
 import java.awt.Color;
 import java.awt.GridLayout;
 import javax.swing.JScrollPane;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JLabel;
 import javax.swing.JProgressBar;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.net.Socket;
+import java.util.Vector;
 import java.awt.event.ActionEvent;
 
-public class FileTransfer extends JFrame {
+public class FileTransfer extends JFrame implements Runnable {
 
 	private JPanel contentPane;
 	private JPanel panel;
 	private JPanel panel_1;
 	private JPanel panel_2;
-	private JButton btnNewButton;
+	private JButton btnAddFile;
 	private JPanel panel_3;
 	private JPanel panel_4;
 	private JPanel panel_5;
@@ -49,14 +57,44 @@ public class FileTransfer extends JFrame {
 	private JLabel label_1;
 	private JLabel label_2;
 	private JLabel label_3;
-	private JLabel lblNewLabel_4;
+	private JLabel lblTotBar;
 	private JProgressBar totBar;
-	private JLabel label_4;
-	private JButton btnsendFile;
+	private JLabel percentage;
+	private JButton btnSendFile;
 	private JScrollPane scrollPane_1;
-	private JList list;
+	private JList<String> fileListThroughput;
 	private JScrollPane scrollPane;
-	private JList list_1;
+	private JList<String> fileList;
+
+	// 현재 파일전송 창을 호출한 ChattClient 로딩
+	private ChattClient cc;
+	
+	// 파일서버을 위한 포트번호
+	private int port;
+
+	// 리스트업 할 파일경로 + 파일명
+	// 스트림을 통해 서버에 실제 송신할때 사용
+	private Vector<String> files = new Vector<String>();
+
+	// 전송할 파일명 목록(파일명만)
+	// 서버에 요청할때만 사용
+	public Vector<String> sendFiles = new Vector<String>();
+
+	@Override
+	public void run() {
+		try {
+			// 임시로 생성된 파일서버와 연동
+			Socket socket = new Socket(this.cc.getId().getText().trim(), port);
+			
+			// 생성된 파일전송 소켓을 기반으로 목록에 있는 파일을 전송하는 스레드를 각각 생성
+			for (int i = 0; i < sendFiles.size(); i++) {
+				TransferThread tt = new TransferThread(this.files.get(i), socket);
+				tt.setDaemon(true);
+				tt.join();
+				tt.start();
+			}
+		} catch (Exception ex) { }
+	}
 
 	/**
 	 * Launch the application.
@@ -77,6 +115,7 @@ public class FileTransfer extends JFrame {
 	/**
 	 * Create the frame.
 	 */
+	// constructor
 	public FileTransfer() {
 		setMinimumSize(new Dimension(550, 650));
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -89,6 +128,11 @@ public class FileTransfer extends JFrame {
 		contentPane.add(getPanel_1(), BorderLayout.CENTER);
 	}
 
+	public FileTransfer(ChattClient cc) {
+		this();
+		this.cc = cc;
+	}
+
 	private JPanel getPanel() {
 		if (panel == null) {
 			panel = new JPanel();
@@ -98,6 +142,7 @@ public class FileTransfer extends JFrame {
 		}
 		return panel;
 	}
+
 	private JPanel getPanel_1() {
 		if (panel_1 == null) {
 			panel_1 = new JPanel();
@@ -109,29 +154,51 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_1;
 	}
+
 	private JPanel getPanel_2() {
 		if (panel_2 == null) {
 			panel_2 = new JPanel();
 			panel_2.setPreferredSize(new Dimension(10, 60));
-			panel_2.add(getBtnNewButton());
-			panel_2.add(getBtnsendFile());
+			panel_2.add(getBtnAddFile());
+			panel_2.add(getBtnSendFile());
 		}
 		return panel_2;
 	}
-	private JButton getBtnNewButton() {
-		if (btnNewButton == null) {
-			btnNewButton = new JButton("+ ADD FILE");
-			btnNewButton.addActionListener(new ActionListener() {
-				public void actionPerformed(ActionEvent e) {
+
+	private JButton getBtnAddFile() {
+		if (btnAddFile == null) {
+			btnAddFile = new JButton("+ ADD FILE");
+			btnAddFile.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent ae) {
 					FileDialog fileDialog;
 					fileDialog = new FileDialog(FileTransfer.this, "File Transfer", FileDialog.LOAD);
 					fileDialog.setVisible(true);
+
+					// 파일 경로
+					String filePath = fileDialog.getDirectory();
+					// 파일명
+					String fileName = fileDialog.getFile();
+
+					// 선택된 파일이 null 이거나 입력된 파일경로에 파일이 존재하지 않을 경우 == false, else 문이 실행된다
+					if (fileName != null && new File(filePath + fileName).exists()) {
+						// 전송할 파일명을 벡터 sendFiles 에 저장
+						sendFiles.add(fileName);
+
+						// 리스트업 할 파일명(경로 + 파일)을 벡터 files 에 저장
+						files.add(filePath + fileName);
+
+						// 갱신된 files 목록을 fileList 에 적용
+						fileList.setListData(files);
+					} else {
+						JOptionPane.showMessageDialog(FileTransfer.this, "선택된 파일이 없습니다.", "File Not Found", 2);
+					}
 				}
 			});
-			btnNewButton.setPreferredSize(new Dimension(100, 30));
+			btnAddFile.setPreferredSize(new Dimension(100, 30));
 		}
-		return btnNewButton;
+		return btnAddFile;
 	}
+
 	private JPanel getPanel_3() {
 		if (panel_3 == null) {
 			panel_3 = new JPanel();
@@ -139,6 +206,7 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_3;
 	}
+
 	private JPanel getPanel_4() {
 		if (panel_4 == null) {
 			panel_4 = new JPanel();
@@ -146,6 +214,7 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_4;
 	}
+
 	private JPanel getPanel_5() {
 		if (panel_5 == null) {
 			panel_5 = new JPanel();
@@ -153,6 +222,7 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_5;
 	}
+
 	private JPanel getPanel_6() {
 		if (panel_6 == null) {
 			panel_6 = new JPanel();
@@ -163,6 +233,7 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_6;
 	}
+
 	private JPanel getPanel_7() {
 		if (panel_7 == null) {
 			panel_7 = new JPanel();
@@ -174,6 +245,7 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_7;
 	}
+
 	private JPanel getPanel_8() {
 		if (panel_8 == null) {
 			panel_8 = new JPanel();
@@ -183,17 +255,19 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_8;
 	}
+
 	private JPanel getPanel_9() {
 		if (panel_9 == null) {
 			panel_9 = new JPanel();
 			panel_9.setBackground(Color.WHITE);
 			panel_9.setPreferredSize(new Dimension(10, 50));
-			panel_9.add(getLblNewLabel_4());
+			panel_9.add(getLblTotBar());
 			panel_9.add(getTotBar());
-			panel_9.add(getLabel_4());
+			panel_9.add(getPercentage());
 		}
 		return panel_9;
 	}
+
 	private JPanel getPanel_10() {
 		if (panel_10 == null) {
 			panel_10 = new JPanel();
@@ -204,6 +278,7 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_10;
 	}
+
 	private JPanel getPanel_11() {
 		if (panel_11 == null) {
 			panel_11 = new JPanel();
@@ -214,6 +289,7 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_11;
 	}
+
 	private JPanel getPanel_12() {
 		if (panel_12 == null) {
 			panel_12 = new JPanel();
@@ -223,6 +299,7 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_12;
 	}
+
 	private JPanel getPanel_13() {
 		if (panel_13 == null) {
 			panel_13 = new JPanel();
@@ -232,6 +309,7 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_13;
 	}
+
 	private JPanel getPanel_14() {
 		if (panel_14 == null) {
 			panel_14 = new JPanel();
@@ -241,6 +319,7 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_14;
 	}
+
 	private JPanel getPanel_15() {
 		if (panel_15 == null) {
 			panel_15 = new JPanel();
@@ -250,73 +329,85 @@ public class FileTransfer extends JFrame {
 		}
 		return panel_15;
 	}
+
 	private JButton getBtnNewButton_1() {
 		if (btnNewButton_1 == null) {
 			btnNewButton_1 = new JButton("FILE NAME");
 		}
 		return btnNewButton_1;
 	}
+
 	private JButton getBtnNewButton_2() {
 		if (btnNewButton_2 == null) {
 			btnNewButton_2 = new JButton("THROUGHPUT");
 		}
 		return btnNewButton_2;
 	}
+
 	private JLabel getLblNewLabel() {
 		if (lblNewLabel == null) {
 			lblNewLabel = new JLabel("파일 수 : ");
 		}
 		return lblNewLabel;
 	}
+
 	private JLabel getLblNewLabel_1() {
 		if (lblNewLabel_1 == null) {
 			lblNewLabel_1 = new JLabel("New label");
 		}
 		return lblNewLabel_1;
 	}
+
 	private JLabel getLblNewLabel_2() {
 		if (lblNewLabel_2 == null) {
 			lblNewLabel_2 = new JLabel("전송 용량 : ");
 		}
 		return lblNewLabel_2;
 	}
+
 	private JLabel getLblNewLabel_3() {
 		if (lblNewLabel_3 == null) {
 			lblNewLabel_3 = new JLabel("New label");
 		}
 		return lblNewLabel_3;
 	}
+
 	private JLabel getLabel() {
 		if (label == null) {
 			label = new JLabel("전송 속도 : ");
 		}
 		return label;
 	}
+
 	private JLabel getLabel_1() {
 		if (label_1 == null) {
 			label_1 = new JLabel("New label");
 		}
 		return label_1;
 	}
+
 	private JLabel getLabel_2() {
 		if (label_2 == null) {
 			label_2 = new JLabel("전송 시간 : ");
 		}
 		return label_2;
 	}
+
 	private JLabel getLabel_3() {
 		if (label_3 == null) {
 			label_3 = new JLabel("New label");
 		}
 		return label_3;
 	}
-	private JLabel getLblNewLabel_4() {
-		if (lblNewLabel_4 == null) {
-			lblNewLabel_4 = new JLabel("TOTAL : ");
-			lblNewLabel_4.setPreferredSize(new Dimension(55, 30));
+
+	private JLabel getLblTotBar() {
+		if (lblTotBar == null) {
+			lblTotBar = new JLabel("TOTAL : ");
+			lblTotBar.setPreferredSize(new Dimension(55, 30));
 		}
-		return lblNewLabel_4;
+		return lblTotBar;
 	}
+
 	private JProgressBar getTotBar() {
 		if (totBar == null) {
 			totBar = new JProgressBar();
@@ -324,47 +415,70 @@ public class FileTransfer extends JFrame {
 		}
 		return totBar;
 	}
-	private JLabel getLabel_4() {
-		if (label_4 == null) {
-			label_4 = new JLabel("100 %");
+
+	private JLabel getPercentage() {
+		if (percentage == null) {
+			percentage = new JLabel("100 %");
 		}
-		return label_4;
+		return percentage;
 	}
-	private JButton getBtnsendFile() {
-		if (btnsendFile == null) {
-			btnsendFile = new JButton("↑ SEND FILE");
-			btnsendFile.setPreferredSize(new Dimension(110, 30));
+
+	private JButton getBtnSendFile() {
+		if (btnSendFile == null) {
+			btnSendFile = new JButton("↑ SEND FILE");
+			btnSendFile.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent ae) {
+					// 11 번 커맨드를 포함한 파일전송요청 Data 객체를 cc 와 연결된 서버스레드로 전송
+					// 전송하기 위한 파일명 목록(Vector)도 포함
+					Data sendData = new Data(cc.getId().getText().trim(), 11, "", sendFiles);
+					cc.ct.send(sendData);
+				}
+			});
+			btnSendFile.setPreferredSize(new Dimension(110, 30));
 		}
-		return btnsendFile;
+		return btnSendFile;
 	}
+
 	private JScrollPane getScrollPane_1_1() {
 		if (scrollPane_1 == null) {
 			scrollPane_1 = new JScrollPane();
 			scrollPane_1.setPreferredSize(new Dimension(120, 2));
 			scrollPane_1.setColumnHeaderView(getBtnNewButton_2());
-			scrollPane_1.setViewportView(getList());
+			scrollPane_1.setViewportView(getFileListThroughput());
 		}
 		return scrollPane_1;
 	}
-	private JList getList() {
-		if (list == null) {
-			list = new JList();
+
+	private JList<String> getFileListThroughput() {
+		if (fileListThroughput == null) {
+			fileListThroughput = new JList<String>();
 		}
-		return list;
+		return fileListThroughput;
 	}
+
 	private JScrollPane getScrollPane_2() {
 		if (scrollPane == null) {
 			scrollPane = new JScrollPane();
 			scrollPane.setPreferredSize(new Dimension(350, 2));
 			scrollPane.setColumnHeaderView(getBtnNewButton_1());
-			scrollPane.setViewportView(getList_1());
+			scrollPane.setViewportView(getFileList());
 		}
 		return scrollPane;
 	}
-	private JList getList_1() {
-		if (list_1 == null) {
-			list_1 = new JList();
+
+	private JList<String> getFileList() {
+		if (fileList == null) {
+			fileList = new JList<String>();
 		}
-		return list_1;
+		return fileList;
 	}
+
+	public int getPort() {
+		return port;
+	}
+
+	public void setPort(int port) {
+		this.port = port;
+	}
+	
 }

@@ -7,6 +7,8 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Vector;
 
+import fileTransfer.FileTransfer;
+
 public class ClientThread extends Thread {
 	// 전달받은 ChattClient 저장
 	private ChattClient cc;
@@ -60,6 +62,12 @@ public class ClientThread extends Thread {
 				// 객체 판별은 id 로 한다
 				String id = receiveData.getId();
 				String msg = receiveData.getMessage();
+				int port = -1;
+				
+				// 12 번 커맨드 시 파일서버 포트번호 저장
+				if (receiveData.getCommand() == 12) {
+					port = Integer.parseInt(receiveData.getMessage());
+				}
 				
 				switch (receiveData.getCommand()) {
 				case 1: // message
@@ -138,6 +146,24 @@ public class ClientThread extends Thread {
 					
 					break;
 				case 12:
+					
+					// 파일전송이 허가되었음을 알림
+					this.cc.msg("[파일전송]" + id + " > 파일전송 허가", false);
+					
+					// 파일전송 시작
+					// ft 에 구현된 파일전송 스레드를 생성해서 이용한다
+					// ft 에 허가받은 파일서버포트 번호를 세팅
+					if (port != -1) {
+						this.cc.ft.setPort(port);
+						new Thread(this.cc.ft).start();
+					}
+					break;
+				case 13:
+					
+					// 서버로부터 파일전송 요청이 왔읆을 알림
+					
+					// 파일을 수신하기 위한 ReceiveThread 를 생성하고 14 번 커맨드를 송신
+					
 					break;
 				}
 			}

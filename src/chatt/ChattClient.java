@@ -6,6 +6,9 @@ import java.awt.EventQueue;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+
+import fileTransfer.FileTransfer;
+
 import java.awt.Dimension;
 import javax.swing.JButton;
 import javax.swing.JTextField;
@@ -76,6 +79,9 @@ public class ChattClient extends JFrame {
 	// 접속시 생성되는 클라이언트 스레드
 	public ClientThread ct;
 	
+	// 파일 전송을 위한 패널
+	FileTransfer ft;
+	
 	// 현재 유저의 아이디 저장
 	// setting 을 해야만 초기화됨
 	private String curID = null;
@@ -100,6 +106,7 @@ public class ChattClient extends JFrame {
 			// 버튼 활성화/비활성화
 			btnConnect.setEnabled(false);
 			btnDisconnect.setEnabled(true);
+			btnFileSend.setEnabled(true);
 			// 접속중이면 setting 불가하도록
 			btnSetting.setEnabled(false);
 			
@@ -233,6 +240,7 @@ public class ChattClient extends JFrame {
 		}
 		
 		btnDisconnect.setEnabled(false);
+		btnFileSend.setEnabled(false);
 	}
 
 	private JPanel getPanel() {
@@ -268,6 +276,13 @@ public class ChattClient extends JFrame {
 	private JButton getBtnFileSend() {
 		if (btnFileSend == null) {
 			btnFileSend = new JButton("FILESEND");
+			btnFileSend.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					// 파일전송패널 객체를 생성하면서 자기자신 cc 를 인자로 넘긴다
+					ft = new FileTransfer(ChattClient.this);
+					ft.setVisible(true);
+				}
+			});
 		}
 		return btnFileSend;
 	}
@@ -416,9 +431,9 @@ public class ChattClient extends JFrame {
 		}
 		return scrollPane_1;
 	}
-	JList getUsrListField() {
+	JList<String> getUsrListField() {
 		if (usrListField == null) {
-			usrListField = new JList();
+			usrListField = new JList<String>();
 		}
 		return usrListField;
 	}

@@ -57,7 +57,7 @@ public class ChattServer extends JFrame implements Runnable {
 	private JScrollPane scrollPane;
 	private JScrollPane scrollPane_1;
 	private JTextArea mainTextArea;
-	private JList usrListField;
+	private JList<String> usrListField;
 	private JLabel lblList;
 	private JLabel lblDialogue;
 	private JButton btnStop;
@@ -89,9 +89,6 @@ public class ChattServer extends JFrame implements Runnable {
 	
 	private Map<String, ServerThread> clients = new ConcurrentHashMap<String, ServerThread>();
 	private Vector<String> users = new Vector<String>(10, 5);
-	private JList<String> userList;
-	/* ============= end of declare variables ============= */
-
 	/* ============= define methods ============= */
 	@Override
 	public void run() {
@@ -129,6 +126,7 @@ public class ChattServer extends JFrame implements Runnable {
 			// 버튼 활성화/비활성화
 			btnStart.setEnabled(false);
 			btnStop.setEnabled(true);
+			btnFileSend.setEnabled(true);
 			
 			// 서버시작 메시지 출력
 			this.mainTextArea.setText("");
@@ -308,6 +306,7 @@ public class ChattServer extends JFrame implements Runnable {
 		}
 		
 		btnStop.setEnabled(false);
+		btnFileSend.setEnabled(false);
 	}
 
 	private JPanel getPanel() {
@@ -370,9 +369,9 @@ public class ChattServer extends JFrame implements Runnable {
 		}
 		return mainTextArea;
 	}
-	JList getUsrListField() {
+	JList<String> getUsrListField() {
 		if (usrListField == null) {
-			usrListField = new JList();
+			usrListField = new JList<String>();
 		}
 		return usrListField;
 	}
