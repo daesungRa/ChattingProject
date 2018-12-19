@@ -19,4 +19,10 @@ Source of chatting program written in java lang
 
 ## Images
 
+## Fixes
+- [181212] : 비정상적 접속종료 처리
+- [181213] : 파일송수신 클래스 정의 및 FileDialog 적용, 송신할 파일 ADD 시 리스트에 표현되도록 작성
+- [181214] : 사용하지 않는 변수 삭제, 버튼 동기화
+- [181218] : 리스트업 된 여러 파일 송신 로직 작성
+
 ## Contact
