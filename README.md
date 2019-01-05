@@ -29,7 +29,7 @@
 ![ChattServerWhisperOn](https://github.com/daesungRa/ChattingProject/blob/master/content/ChattServerWhisperOn.png)
 ![ChattClient](https://github.com/daesungRa/ChattingProject/blob/master/content/ChattClient.png)
 ![ChattClientLogout](https://github.com/daesungRa/ChattingProject/blob/master/content/ChattClientLogout.png)
-![FileTransferPage](https://github.com/daesungRa/ChattingProject/blob/master/content/FileTransferPage.png)
+![FileTransferPage](https://github.com/daesungRa/ChattingProject/blob/master/content/FIleTransferPage.png)
 ![FileTransfer](https://github.com/daesungRa/ChattingProject/blob/master/content/FileTransfer.png)
 ![ReceiveFile](https://github.com/daesungRa/ChattingProject/blob/master/content/ReceiveFile.png)
 
