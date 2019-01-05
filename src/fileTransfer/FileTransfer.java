@@ -26,6 +26,7 @@ import java.io.File;
 import java.net.Socket;
 import java.util.Vector;
 import java.awt.event.ActionEvent;
+import javax.swing.SwingConstants;
 
 public class FileTransfer extends JFrame implements Runnable {
 
@@ -38,28 +39,9 @@ public class FileTransfer extends JFrame implements Runnable {
 	private JPanel panel_4;
 	private JPanel panel_5;
 	private JPanel panel_6;
-	private JPanel panel_7;
 	private JPanel panel_8;
-	private JPanel panel_9;
-	private JPanel panel_10;
-	private JPanel panel_11;
-	private JPanel panel_12;
-	private JPanel panel_13;
-	private JPanel panel_14;
-	private JPanel panel_15;
 	private JButton btnNewButton_1;
 	private JButton btnNewButton_2;
-	private JLabel lblNewLabel;
-	private JLabel lblNewLabel_1;
-	private JLabel lblNewLabel_2;
-	private JLabel lblNewLabel_3;
-	private JLabel label;
-	private JLabel label_1;
-	private JLabel label_2;
-	private JLabel label_3;
-	private JLabel lblTotBar;
-	private JProgressBar totBar;
-	private JLabel percentage;
 	private JButton btnSendFile;
 	private JScrollPane scrollPane_1;
 	private JList<String> fileListThroughput;
@@ -88,7 +70,7 @@ public class FileTransfer extends JFrame implements Runnable {
 			
 			// 생성된 파일전송 소켓을 기반으로 목록에 있는 파일을 전송하는 스레드를 각각 생성
 			for (int i = 0; i < sendFiles.size(); i++) {
-				TransferThread tt = new TransferThread(this.files.get(i), socket);
+				TransferThread tt = new TransferThread(FileTransfer.this, this.files.get(i), socket);
 				tt.setDaemon(true);
 				tt.join();
 				tt.start();
@@ -117,7 +99,7 @@ public class FileTransfer extends JFrame implements Runnable {
 	 */
 	// constructor
 	public FileTransfer() {
-		setMinimumSize(new Dimension(550, 650));
+		setMinimumSize(new Dimension(550, 350));
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
 		contentPane = new JPanel();
@@ -228,22 +210,9 @@ public class FileTransfer extends JFrame implements Runnable {
 			panel_6 = new JPanel();
 			panel_6.setBorder(new LineBorder(new Color(0, 0, 0)));
 			panel_6.setLayout(new BorderLayout(0, 0));
-			panel_6.add(getPanel_7(), BorderLayout.NORTH);
 			panel_6.add(getPanel_8(), BorderLayout.CENTER);
 		}
 		return panel_6;
-	}
-
-	private JPanel getPanel_7() {
-		if (panel_7 == null) {
-			panel_7 = new JPanel();
-			panel_7.setPreferredSize(new Dimension(10, 130));
-			panel_7.setLayout(new BorderLayout(0, 0));
-			panel_7.add(getPanel_9(), BorderLayout.NORTH);
-			panel_7.add(getPanel_10(), BorderLayout.SOUTH);
-			panel_7.add(getPanel_11(), BorderLayout.CENTER);
-		}
-		return panel_7;
 	}
 
 	private JPanel getPanel_8() {
@@ -254,80 +223,6 @@ public class FileTransfer extends JFrame implements Runnable {
 			panel_8.add(getScrollPane_2(), BorderLayout.CENTER);
 		}
 		return panel_8;
-	}
-
-	private JPanel getPanel_9() {
-		if (panel_9 == null) {
-			panel_9 = new JPanel();
-			panel_9.setBackground(Color.WHITE);
-			panel_9.setPreferredSize(new Dimension(10, 50));
-			panel_9.add(getLblTotBar());
-			panel_9.add(getTotBar());
-			panel_9.add(getPercentage());
-		}
-		return panel_9;
-	}
-
-	private JPanel getPanel_10() {
-		if (panel_10 == null) {
-			panel_10 = new JPanel();
-			panel_10.setPreferredSize(new Dimension(10, 40));
-			panel_10.setLayout(new GridLayout(1, 0, 0, 0));
-			panel_10.add(getPanel_14());
-			panel_10.add(getPanel_15());
-		}
-		return panel_10;
-	}
-
-	private JPanel getPanel_11() {
-		if (panel_11 == null) {
-			panel_11 = new JPanel();
-			panel_11.setPreferredSize(new Dimension(10, 40));
-			panel_11.setLayout(new GridLayout(1, 0, 0, 0));
-			panel_11.add(getPanel_12());
-			panel_11.add(getPanel_13());
-		}
-		return panel_11;
-	}
-
-	private JPanel getPanel_12() {
-		if (panel_12 == null) {
-			panel_12 = new JPanel();
-			panel_12.setBackground(Color.WHITE);
-			panel_12.add(getLblNewLabel());
-			panel_12.add(getLblNewLabel_1());
-		}
-		return panel_12;
-	}
-
-	private JPanel getPanel_13() {
-		if (panel_13 == null) {
-			panel_13 = new JPanel();
-			panel_13.setBackground(Color.WHITE);
-			panel_13.add(getLabel_2());
-			panel_13.add(getLabel_3());
-		}
-		return panel_13;
-	}
-
-	private JPanel getPanel_14() {
-		if (panel_14 == null) {
-			panel_14 = new JPanel();
-			panel_14.setBackground(Color.WHITE);
-			panel_14.add(getLblNewLabel_2());
-			panel_14.add(getLblNewLabel_3());
-		}
-		return panel_14;
-	}
-
-	private JPanel getPanel_15() {
-		if (panel_15 == null) {
-			panel_15 = new JPanel();
-			panel_15.setBackground(Color.WHITE);
-			panel_15.add(getLabel());
-			panel_15.add(getLabel_1());
-		}
-		return panel_15;
 	}
 
 	private JButton getBtnNewButton_1() {
@@ -342,85 +237,6 @@ public class FileTransfer extends JFrame implements Runnable {
 			btnNewButton_2 = new JButton("THROUGHPUT");
 		}
 		return btnNewButton_2;
-	}
-
-	private JLabel getLblNewLabel() {
-		if (lblNewLabel == null) {
-			lblNewLabel = new JLabel("파일 수 : ");
-		}
-		return lblNewLabel;
-	}
-
-	private JLabel getLblNewLabel_1() {
-		if (lblNewLabel_1 == null) {
-			lblNewLabel_1 = new JLabel("New label");
-		}
-		return lblNewLabel_1;
-	}
-
-	private JLabel getLblNewLabel_2() {
-		if (lblNewLabel_2 == null) {
-			lblNewLabel_2 = new JLabel("전송 용량 : ");
-		}
-		return lblNewLabel_2;
-	}
-
-	private JLabel getLblNewLabel_3() {
-		if (lblNewLabel_3 == null) {
-			lblNewLabel_3 = new JLabel("New label");
-		}
-		return lblNewLabel_3;
-	}
-
-	private JLabel getLabel() {
-		if (label == null) {
-			label = new JLabel("전송 속도 : ");
-		}
-		return label;
-	}
-
-	private JLabel getLabel_1() {
-		if (label_1 == null) {
-			label_1 = new JLabel("New label");
-		}
-		return label_1;
-	}
-
-	private JLabel getLabel_2() {
-		if (label_2 == null) {
-			label_2 = new JLabel("전송 시간 : ");
-		}
-		return label_2;
-	}
-
-	private JLabel getLabel_3() {
-		if (label_3 == null) {
-			label_3 = new JLabel("New label");
-		}
-		return label_3;
-	}
-
-	private JLabel getLblTotBar() {
-		if (lblTotBar == null) {
-			lblTotBar = new JLabel("TOTAL : ");
-			lblTotBar.setPreferredSize(new Dimension(55, 30));
-		}
-		return lblTotBar;
-	}
-
-	private JProgressBar getTotBar() {
-		if (totBar == null) {
-			totBar = new JProgressBar();
-			totBar.setPreferredSize(new Dimension(380, 15));
-		}
-		return totBar;
-	}
-
-	private JLabel getPercentage() {
-		if (percentage == null) {
-			percentage = new JLabel("100 %");
-		}
-		return percentage;
 	}
 
 	private JButton getBtnSendFile() {
@@ -480,5 +296,4 @@ public class FileTransfer extends JFrame implements Runnable {
 	public void setPort(int port) {
 		this.port = port;
 	}
-	
 }

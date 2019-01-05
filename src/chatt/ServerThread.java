@@ -1,6 +1,7 @@
 package chatt;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -28,7 +29,7 @@ public class ServerThread extends Thread {
 	private boolean threadFlag = false;
 	
 	// 현재 해당 서버스레드로 접속 중인 유저의 아이디 저장
-	String curID = null;
+	private String curID = null;
 	
 	// 파일을 수신할 스레드
 	private ReceiveThread rt;
@@ -39,30 +40,31 @@ public class ServerThread extends Thread {
 	// 파일수신을 위해 임시생성하는 파일서버
 	private class ReceiveThread extends Thread {
 		// 파일수신을 위한 서버소켓
-		ServerSocket serverSocket;
+		private ServerSocket serverSocket;
 		
 		// 파일수신을 위한 소켓
-		Socket socket;
+		private Socket socket;
 		
 		// 사용할 포트번호
-		int port;
+		private int port;
 		
 		// 파일을 수신할 스트림
-		InputStream is;
-		BufferedInputStream bis;
+		private InputStream is;
+		private BufferedInputStream bis;
 		
 		// 수신할 데이터 단위
-		byte[] data = new byte[8192];
-		int readByte = 0;
+		private byte[] data = new byte[8192];
+		private int readByte = 0;
 		
 		// 수신받을 파일명 목록
-		Vector<String> fileNames;
+		private Vector<String> fileNames;
 		
-		// 현재 수신받을 파일명
-		String fileName;
+		// 클라로부터 수신받은 파일을 저장할 경로 - 사용자 홈 디렉토리
+		private File fileSavePath = new File(System.getProperty("user.home"));
 		
 		// 수신받은 파일을 저장할 스트림
-		FileOutputStream fos;
+		private FileOutputStream fos;
+		private BufferedOutputStream bos;
 		
 		// 생성자
 		// 수신받을 파일명 목록과 포트번호
@@ -74,23 +76,48 @@ public class ServerThread extends Thread {
 		@Override
 		public void run() {
 			try {
-				// 서버포트 생성
+				
+				// 서버소켓 생성
 				serverSocket = new ServerSocket(port);
 				
-				// 서버포트 생성 후 클라의 파일전송 대기
+				// 서버소켓 생성 후 클라의 파일전송 대기
 				socket = serverSocket.accept();
 				
-				// 파일전송이 시작되면 단위별로 읽어들인다
+				// 파일전송이 시작되면 전송되는 파일을 단위별로 읽어들이는 InputStream
+				// 클라이언트와 연결된 스트림
 				is = socket.getInputStream();
 				bis = new BufferedInputStream(is);
 				
-				// 읽어들이는 대로 서버에 저장할 파일명
+				// 수신받은 파일을 지정된 경로에 저장하기 위한 OutputStream
+				// 로컬에 저장
+				fos = new FileOutputStream(fileSavePath);
+				bos = new BufferedOutputStream(fos);
+				
+				// 단위별로 읽어들이기
 				while ((readByte = bis.read(data)) != -1) {
-					fos.write(data);
+					// 지정된 경로에 저장
+					bos.write(data);
 				}
 				
+			} catch (Exception ex) {
 				
-			} catch (Exception ex) { }
+				ex.printStackTrace();
+				cs.msg("파일 수신 실패", false);
+				
+			} finally {
+				try {
+					// 모든 스트림 close
+					bos.flush();
+					bos.close();
+					fos.close();
+					bis.close();
+					is.close();
+					
+					socket.close();
+					serverSocket.close();
+					
+				} catch (Exception ex) { }
+			}
 		}
 	}
 	
@@ -249,6 +276,8 @@ public class ServerThread extends Thread {
 						FileServerPort.fileServerPort++;
 					}
 					
+					cs.msg("[수신완료] 파일 수신 완료 후 포트 가변", false);
+					
 					// rt 의 작업이 종료된 이후(join) 접속된 모든 클라이언트로 받은 파일을 재전송하는 SendThread 를 생성,
 					// 여기서도 가변포트로 서버소켓을 새로 생성한다.
 					// 이때 모든 클라로 13 번 커맨드와 포트번호를 전송하여 파일수신대기상태가 되도록 요청한다
@@ -259,6 +288,8 @@ public class ServerThread extends Thread {
 					st.setDaemon(true);
 					st.join();
 					st.start();
+					
+					cs.msg("[송신완료] 수신받은 파일 Broadcast 완료", false);
 					
 					break;
 				}

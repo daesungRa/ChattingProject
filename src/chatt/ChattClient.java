@@ -129,6 +129,7 @@ public class ChattClient extends JFrame {
 			// 버튼 활성화/비활성화
 			btnConnect.setEnabled(true);
 			btnDisconnect.setEnabled(false);
+			btnFileSend.setEnabled(false);
 			// 접속 종료하면 setting 가능
 			btnSetting.setEnabled(true);
 			
