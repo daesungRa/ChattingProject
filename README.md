@@ -23,15 +23,15 @@
 
 ## How to use
 
-![ChattServer](https://github.com/daesungRa/ChattingProject/blob/master/content/1)ChattServer.PNG)
-![ChattServerOperating](https://github.com/daesungRa/ChattingProject/blob/master/content/2)ChattServerOperating.PNG)
-![ChattServerMultiUser](https://github.com/daesungRa/ChattingProject/blob/master/content/3)ChattServerMultiUser.PNG)
-![ChattServerWhisperOn](https://github.com/daesungRa/ChattingProject/blob/master/content/4)ChattServerWhisperOn.PNG)
-![ChattClient](https://github.com/daesungRa/ChattingProject/blob/master/content/5)ChattClient.PNG)
-![ChattClientLogout](https://github.com/daesungRa/ChattingProject/blob/master/content/6)ChattClientLogout.PNG)
-![FileTransferPage](https://github.com/daesungRa/ChattingProject/blob/master/content/7)FileTransferPage.PNG)
-![FileTransfer](https://github.com/daesungRa/ChattingProject/blob/master/content/8)FileTransfer.PNG)
-![ReceiveFile](https://github.com/daesungRa/ChattingProject/blob/master/content/9)ReceiveFile.PNG)
+![ChattServer](https://github.com/daesungRa/ChattingProject/blob/master/content/ChattServer.png)
+![ChattServerOperating](https://github.com/daesungRa/ChattingProject/blob/master/content/ChattServerOperating.png)
+![ChattServerMultiUser](https://github.com/daesungRa/ChattingProject/blob/master/content/ChattServerMultiUser.png)
+![ChattServerWhisperOn](https://github.com/daesungRa/ChattingProject/blob/master/content/ChattServerWhisperOn.png)
+![ChattClient](https://github.com/daesungRa/ChattingProject/blob/master/content/ChattClient.png)
+![ChattClientLogout](https://github.com/daesungRa/ChattingProject/blob/master/content/ChattClientLogout.png)
+![FileTransferPage](https://github.com/daesungRa/ChattingProject/blob/master/content/FileTransferPage.png)
+![FileTransfer](https://github.com/daesungRa/ChattingProject/blob/master/content/FileTransfer.png)
+![ReceiveFile](https://github.com/daesungRa/ChattingProject/blob/master/content/ReceiveFile.png)
 
 ## Fixes
 - [181212] : 비정상적 접속종료 처리
